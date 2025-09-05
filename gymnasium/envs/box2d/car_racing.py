@@ -216,6 +216,8 @@ class CarRacing(gym.Env, EzPickle):
         lap_complete_percent: float = 0.95,
         domain_randomize: bool = False,
         continuous: bool = True,
+        track_style: str | None = None,
+        num_checkpoints: int = 12,
     ):
         EzPickle.__init__(
             self,
@@ -224,6 +226,8 @@ class CarRacing(gym.Env, EzPickle):
             lap_complete_percent,
             domain_randomize,
             continuous,
+            track_style,
+            num_checkpoints,
         )
         self.continuous = continuous
         self.domain_randomize = domain_randomize
@@ -264,6 +268,9 @@ class CarRacing(gym.Env, EzPickle):
         )
 
         self.render_mode = render_mode
+        
+        self.track_style = track_style
+        self.num_checkpoints = num_checkpoints
 
     def _destroy(self):
         if not self.road:
@@ -306,24 +313,42 @@ class CarRacing(gym.Env, EzPickle):
             self.grass_color[idx] += 20
 
     def _create_track(self):
-        CHECKPOINTS = 12
+        # Number of checkpoints, determines the amount of sections in the track. Does not influence track length.
+        CHECKPOINTS = self.num_checkpoints
 
         # Create checkpoints
         checkpoints = []
-        for c in range(CHECKPOINTS):
-            noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
-            alpha = 2 * math.pi * c / CHECKPOINTS + noise
-            rad = self.np_random.uniform(TRACK_RAD / 3, TRACK_RAD)
+        
+        match self.track_style:
+            case "circle":
+                # Checkpoints generation for circle track
+                for c in range(CHECKPOINTS):
+                    alpha = 2 * math.pi * c / CHECKPOINTS
+                    
+                    if c == 0:
+                        alpha = 0
+                    if c == CHECKPOINTS - 1:
+                        alpha = 2 * math.pi * c / CHECKPOINTS
+                        self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
 
-            if c == 0:
-                alpha = 0
-                rad = 1.5 * TRACK_RAD
-            if c == CHECKPOINTS - 1:
-                alpha = 2 * math.pi * c / CHECKPOINTS
-                self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
-                rad = 1.5 * TRACK_RAD
+                    checkpoints.append((alpha,TRACK_RAD * math.cos(alpha), TRACK_RAD * math.sin(alpha)))
+            case _:
+                # original Checkpoints generation
+                for c in range(CHECKPOINTS):
+                    noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
+                    alpha = 2 * math.pi * c / CHECKPOINTS + noise
+                    rad = self.np_random.uniform(TRACK_RAD / 3, TRACK_RAD)
 
-            checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
+                    if c == 0:
+                        alpha = 0
+                        rad = 1.5 * TRACK_RAD
+                    if c == CHECKPOINTS - 1:
+                        alpha = 2 * math.pi * c / CHECKPOINTS
+                        self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
+                        rad = 1.5 * TRACK_RAD
+
+                    checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
+            
         self.road = []
 
         # Go from one checkpoint to another to create track
