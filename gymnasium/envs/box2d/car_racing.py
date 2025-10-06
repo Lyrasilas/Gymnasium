@@ -41,6 +41,7 @@ SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
 FPS = 50  # Frames per second
+# ZOOM = 1.0  # Camera zoom
 ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
@@ -81,12 +82,13 @@ class FrictionDetector(contactListener):
             obj = u1
         if not tile:
             return
-
+        
         # inherit tile color from env
         tile.color[:] = self.env.road_color
         if not obj or "tiles" not in obj.__dict__:
             return
         if begin:
+            
             obj.tiles.add(tile)
             if not tile.road_visited:
                 tile.road_visited = True
@@ -243,6 +245,7 @@ class CarRacing(gym.Env, EzPickle):
         self.invisible_state_window = None
         self.invisible_video_window = None
         self.road = None
+        self.last_track_idx = 0
         self.car: Car | None = None
         self.reward = 0.0
         self.prev_reward = 0.0
@@ -352,6 +355,8 @@ class CarRacing(gym.Env, EzPickle):
         self.road = []
 
         # Go from one checkpoint to another to create track
+        
+        # TODO: use to calculate track statistics, such as length, centerline, curvature, "walls", racing line, etc.
         x, y, beta = 1.5 * TRACK_RAD, 0, 0
         dest_i = 0
         laps = 0
@@ -581,6 +586,7 @@ class CarRacing(gym.Env, EzPickle):
                 self.car.brake(0.8 * (action == 4))
 
         self.car.step(1.0 / FPS)
+        # print(self.track)
         self.world.Step(1.0 / FPS, 6 * 30, 2 * 30)
         self.t += 1.0 / FPS
 
@@ -597,6 +603,31 @@ class CarRacing(gym.Env, EzPickle):
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
             self.prev_reward = self.reward
+            # Check if car is within track limits
+            x, y = self.car.hull.position
+            inside_track = False
+            closest_idx = self.last_track_idx
+            min_dist = float('inf')
+            window = 10  # Number of points to check before and after last index
+
+            start = max(0, closest_idx - window)
+            end = min(len(self.track), closest_idx + window + 1)
+
+            for i in range(start, end):
+                track_x, track_y = self.track[i][-2], self.track[i][-1]
+                dist = np.sqrt((x - track_x) ** 2 + (y - track_y) ** 2)
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_idx = i
+                if dist < TRACK_WIDTH:
+                    inside_track = True
+                    self.last_track_idx = i  # Remember for next step
+                    break
+
+            if not inside_track:
+                self.last_track_idx = closest_idx  # Update to nearest for next step
+                self.reward -= 1
+                step_reward = -1
             if self.tile_visited_count == len(self.track) or self.new_lap:
                 # Termination due to finishing lap
                 terminated = True
