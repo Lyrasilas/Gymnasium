@@ -1,5 +1,6 @@
 __credits__ = ["Andrea PIERRÉ"]
 
+import csv
 import math
 
 import numpy as np
@@ -523,6 +524,13 @@ class CarRacing(gym.Env, EzPickle):
                     )
                 )
         self.track = track
+        with open("track.csv", "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["x", "y", "beta", "width"])
+            for entry in track:
+                x, y, beta = entry[2], entry[3], entry[1]
+                width = TRACK_WIDTH
+                writer.writerow([x, y, beta, width])
         return True
 
     def reset(
@@ -626,8 +634,8 @@ class CarRacing(gym.Env, EzPickle):
 
             if not inside_track:
                 self.last_track_idx = closest_idx  # Update to nearest for next step
-                self.reward -= 1
-                step_reward = -1
+                self.reward -= 2
+                step_reward = -2
             if self.tile_visited_count == len(self.track) or self.new_lap:
                 # Termination due to finishing lap
                 terminated = True
