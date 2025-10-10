@@ -332,7 +332,7 @@ class Car:
                     )
                     for coords in white_poly
                 ]
-                pygame.draw.polygon(surface, color=WHEEL_WHITE, points=white_poly)
+                # pygame.draw.polygon(surface, color=WHEEL_WHITE, points=white_poly)
 
     def _create_particle(self, point1, point2, grass):
         class Particle:

@@ -2,6 +2,7 @@ __credits__ = ["Andrea PIERRÉ"]
 
 import csv
 import math
+import random
 
 import numpy as np
 
@@ -326,16 +327,18 @@ class CarRacing(gym.Env, EzPickle):
         match self.track_style:
             case "circle":
                 # Checkpoints generation for circle track
+                # Randomize direction: +1 for left-handed, -1 for right-handed
+                direction = 1
                 for c in range(CHECKPOINTS):
-                    alpha = 2 * math.pi * c / CHECKPOINTS
+                    alpha = direction * 2 * math.pi * c / CHECKPOINTS
                     
                     if c == 0:
                         alpha = 0
                     if c == CHECKPOINTS - 1:
-                        alpha = 2 * math.pi * c / CHECKPOINTS
-                        self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
+                        alpha = direction * 2 * math.pi * c / CHECKPOINTS
+                        self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
 
-                    checkpoints.append((alpha,TRACK_RAD * math.cos(alpha), TRACK_RAD * math.sin(alpha)))
+                    checkpoints.append((alpha, TRACK_RAD * math.cos(alpha), TRACK_RAD * math.sin(alpha)))
             case _:
                 # original Checkpoints generation
                 for c in range(CHECKPOINTS):
@@ -845,7 +848,7 @@ class CarRacing(gym.Env, EzPickle):
             and (-MAX_SHAPE_DIM <= coord[1] <= WINDOW_H + MAX_SHAPE_DIM)
             for coord in poly
         ):
-            gfxdraw.aapolygon(self.surf, poly, color)
+            # gfxdraw.aapolygon(self.surf, poly, color)
             gfxdraw.filled_polygon(self.surf, poly, color)
 
     def _create_image_array(self, screen, size):
