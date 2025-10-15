@@ -265,7 +265,7 @@ class Car:
                 True,
             )
 
-    def draw(self, surface, zoom, translation, angle, draw_particles=True):
+    def draw(self, surface, zoom, translation, angle, draw_particles=True, color_hulls=False):
         import pygame.draw
 
         if draw_particles:
@@ -278,12 +278,20 @@ class Car:
                     )
                     for coords in poly
                 ]
+                # draw particle poly (use original coordinates)
                 pygame.draw.lines(
                     surface, color=p.color, points=poly, width=2, closed=False
                 )
 
+        # Distinct colors for hull polygons (optional)
+        HULL_COLORS = [
+            (255, 0, 0),    # Red
+            (0, 255, 0),    # Green
+            (0, 0, 255),    # Blue
+            (255, 255, 0),  # Yellow
+        ]
         for obj in self.drawlist:
-            for f in obj.fixtures:
+            for idx, f in enumerate(obj.fixtures):
                 trans = f.body.transform
                 path = [trans * v for v in f.shape.vertices]
                 path = [(coords[0], coords[1]) for coords in path]
@@ -295,7 +303,11 @@ class Car:
                     )
                     for coords in path
                 ]
-                color = [int(c * 255) for c in obj.color]
+                # Use distinct color for hull polygons only if color_hulls is True
+                if color_hulls and obj is self.hull and idx < 4:
+                    color = HULL_COLORS[idx]
+                else:
+                    color = [int(c * 255) for c in obj.color]
 
                 pygame.draw.polygon(surface, color=color, points=path)
 
@@ -332,7 +344,10 @@ class Car:
                     )
                     for coords in white_poly
                 ]
-                # pygame.draw.polygon(surface, color=WHEEL_WHITE, points=white_poly)
+                # keep white wheel stripe disabled to avoid aliasing/soft edges
+                # if you want to enable it, convert to integer coords first:
+                # int_white = [(int(round(x)), int(round(y))) for x,y in white_poly]
+                # pygame.draw.polygon(surface, color=WHEEL_WHITE, points=int_white)
 
     def _create_particle(self, point1, point2, grass):
         class Particle:

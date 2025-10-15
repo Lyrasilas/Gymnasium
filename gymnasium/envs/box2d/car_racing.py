@@ -32,8 +32,8 @@ except ImportError as e:
     ) from e
 
 
-STATE_W = 96  # less than Atari 160x192
-STATE_H = 96
+STATE_W = 160  # less than Atari 160x192
+STATE_H = 192
 VIDEO_W = 600
 VIDEO_H = 400
 WINDOW_W = 1000
@@ -848,10 +848,14 @@ class CarRacing(gym.Env, EzPickle):
             and (-MAX_SHAPE_DIM <= coord[1] <= WINDOW_H + MAX_SHAPE_DIM)
             for coord in poly
         ):
-            # gfxdraw.aapolygon(self.surf, poly, color)
-            gfxdraw.filled_polygon(self.surf, poly, color)
+            # convert to integer pixel coordinates to avoid subpixel blending
+            int_poly = [(int(round(x)), int(round(y))) for x, y in poly]
+            # gfxdraw.aapolygon(self.surf, int_poly, color)
+            gfxdraw.filled_polygon(self.surf, int_poly, color)
 
     def _create_image_array(self, screen, size):
+        # Original behavior: use smoothscale and extract pixels directly.
+        # Reverted so you can compare human/rgb_array rendering as before edits.
         scaled_screen = pygame.transform.smoothscale(screen, size)
         return np.transpose(
             np.array(pygame.surfarray.pixels3d(scaled_screen)), axes=(1, 0, 2)
