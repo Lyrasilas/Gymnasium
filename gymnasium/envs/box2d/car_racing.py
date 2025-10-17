@@ -527,9 +527,10 @@ class CarRacing(gym.Env, EzPickle):
                     )
                 )
         self.track = track
+        # save csv of track for analysis in top most directory
         with open("track.csv", "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(["x", "y", "beta", "width"])
+            writer.writerow(["x", "y", "beta", "width"])  # x coordinate, y coordinate, heading angle, track width
             for entry in track:
                 x, y, beta = entry[2], entry[3], entry[1]
                 width = TRACK_WIDTH
