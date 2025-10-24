@@ -48,7 +48,7 @@ ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
-TRACK_DETAIL_STEP = 21 / SCALE
+TRACK_DETAIL_STEP = 13 / SCALE
 TRACK_TURN_RATE = 0.31
 TRACK_WIDTH = 40 / SCALE
 BORDER = 8 / SCALE
@@ -109,6 +109,9 @@ class FrictionDetector(contactListener):
 
 
 class CarRacing(gym.Env, EzPickle):
+    def _world_to_pixel(self, pos, zoom, translation, angle):
+        v = pygame.math.Vector2(pos).rotate_rad(angle)
+        return (v[0] * zoom + translation[0], v[1] * zoom + translation[1])
     """
     ## Description
     The easiest control task to learn from pixels - a top-down
@@ -581,6 +584,8 @@ class CarRacing(gym.Env, EzPickle):
 
     def step(self, action: np.ndarray | int):
         assert self.car is not None
+        # Store previous world position before step
+        prev_world_pos = tuple(self.car.hull.position)
         if action is not None:
             if self.continuous:
                 action = action.astype(np.float64)
@@ -603,6 +608,31 @@ class CarRacing(gym.Env, EzPickle):
         self.t += 1.0 / FPS
 
         self.state = self._render("state_pixels")
+
+        # Calculate car pixel movement in cropped observation (state_pixels)
+        angle = -self.car.hull.angle
+        zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
+        scroll_x = -(self.car.hull.position[0]) * zoom
+        scroll_y = -(self.car.hull.position[1]) * zoom
+        translation = pygame.math.Vector2((scroll_x, scroll_y)).rotate_rad(angle)
+        translation = (WINDOW_W / 2 + translation[0], WINDOW_H / 4 + translation[1])
+        prev_pixel_full = self._world_to_pixel(prev_world_pos, zoom, translation, angle)
+        curr_world_pos = tuple(self.car.hull.position)
+        curr_pixel_full = self._world_to_pixel(curr_world_pos, zoom, translation, angle)
+
+        # Map full window pixel positions to cropped observation (state_pixels)
+        crop_x = (WINDOW_W - STATE_W) // 2
+        crop_y = (WINDOW_H - STATE_H) // 2
+        prev_obs_pixel = (prev_pixel_full[0] - crop_x, prev_pixel_full[1] - crop_y)
+        curr_obs_pixel = (curr_pixel_full[0] - crop_x, curr_pixel_full[1] - crop_y)
+        # Rescale to cropped observation pixel units
+        prev_obs_pixel_scaled = (prev_obs_pixel[0] * STATE_W / WINDOW_W, prev_obs_pixel[1] * STATE_H / WINDOW_H)
+        curr_obs_pixel_scaled = (curr_obs_pixel[0] * STATE_W / WINDOW_W, curr_obs_pixel[1] * STATE_H / WINDOW_H)
+        pixel_dist_obs_scaled = math.sqrt(
+            (curr_obs_pixel_scaled[0] - prev_obs_pixel_scaled[0])**2 +
+            (curr_obs_pixel_scaled[1] - prev_obs_pixel_scaled[1])**2
+        )
+        # print(f"Car pixel movement in cropped obs (scaled): {pixel_dist_obs_scaled:.2f}")
 
         step_reward = 0
         terminated = False
