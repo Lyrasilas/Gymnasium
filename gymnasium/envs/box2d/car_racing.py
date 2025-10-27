@@ -48,7 +48,7 @@ ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
-TRACK_DETAIL_STEP = 13 / SCALE
+TRACK_DETAIL_STEP = 21 / SCALE
 TRACK_TURN_RATE = 0.31
 TRACK_WIDTH = 40 / SCALE
 BORDER = 8 / SCALE
