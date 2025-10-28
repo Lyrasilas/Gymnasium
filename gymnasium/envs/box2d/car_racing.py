@@ -32,8 +32,8 @@ except ImportError as e:
     ) from e
 
 
-STATE_W = 320  # less than Atari 160x192
-STATE_H = 384
+STATE_W = 160  # less than Atari 160x192
+STATE_H = 192
 VIDEO_W = 600
 VIDEO_H = 400
 WINDOW_W = 1000
@@ -48,8 +48,8 @@ ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
-TRACK_DETAIL_STEP = 21 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
-TRACK_TURN_RATE = 0.31
+TRACK_DETAIL_STEP = 18 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
+TRACK_TURN_RATE = 0.15
 TRACK_WIDTH = 40 / SCALE
 BORDER = 8 / SCALE
 BORDER_MIN_COUNT = 4
