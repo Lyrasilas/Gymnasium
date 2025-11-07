@@ -3,6 +3,7 @@ __credits__ = ["Andrea PIERRÉ"]
 import csv
 import math
 import random
+import time 
 
 import numpy as np
 
@@ -36,13 +37,13 @@ STATE_W = 160  # less than Atari 160x192
 STATE_H = 192
 VIDEO_W = 600
 VIDEO_H = 400
-WINDOW_W = 1000
-WINDOW_H = 800
+WINDOW_W = 512
+WINDOW_H = 512
 
 SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
-FPS = 50  # Frames per second
+FPS = 30  # Frames per second
 # ZOOM = 1.0  # Camera zoom
 ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
@@ -225,6 +226,7 @@ class CarRacing(gym.Env, EzPickle):
         continuous: bool = True,
         track_style: str | None = None,
         num_checkpoints: int = 12,
+        view: str | None = "car"
     ):
         EzPickle.__init__(
             self,
@@ -235,6 +237,7 @@ class CarRacing(gym.Env, EzPickle):
             continuous,
             track_style,
             num_checkpoints,
+            view,
         )
         self.continuous = continuous
         self.domain_randomize = domain_randomize
@@ -279,6 +282,7 @@ class CarRacing(gym.Env, EzPickle):
         
         self.track_style = track_style
         self.num_checkpoints = num_checkpoints
+        self.view = view
 
     def _destroy(self):
         if not self.road:
@@ -328,9 +332,51 @@ class CarRacing(gym.Env, EzPickle):
         checkpoints = []
         
         match self.track_style:
+            case "NASCAR":
+                # Checkpoints generation for NASCAR oval track
+                # SCALE = 6.0  # Track scale
+                TRACK_RAD = 180 / SCALE  # Track is heavily morphed circle with this radius
+                # PLAYFIELD = 2000 / SCALE  # Game over boundary
+                # FPS = 50  # Frames per second
+                # # ZOOM = 1.0  # Camera zoom
+                # ZOOM = 2.7  # Camera zoom
+                # ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
+
+
+                TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
+                # TRACK_TURN_RATE = 0.15
+                # TRACK_WIDTH = 40 / SCALE
+                # BORDER = 8 / SCALE
+                # BORDER_MIN_COUNT = 4
+                # GRASS_DIM = PLAYFIELD / 20.0
+                # MAX_SHAPE_DIM = (
+                #     max(GRASS_DIM, TRACK_WIDTH, TRACK_DETAIL_STEP) * math.sqrt(2) * ZOOM * SCALE
+                # )
+                # print("DEBUG: Using simple track style")
+                CHECKPOINTS = 2
+                # print(f"DEBUG: Number of checkpoints set to {CHECKPOINTS}")
+                for c in range(CHECKPOINTS):
+                    noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
+                    alpha = 2 * math.pi * c / CHECKPOINTS + noise
+                    # print("DEBUG: noise and alpha set")
+                    rad = self.np_random.uniform(TRACK_RAD / 3, TRACK_RAD)
+                    # print(f"DEBUG: rad set to {rad}")
+                    if c == 0:
+                        # print("DEBUG: c == 0")
+                        alpha = 0
+                        rad = 1.5 * TRACK_RAD
+                    if c == CHECKPOINTS - 1:
+                        # print("DEBUG: c == CHECKPOINTS - 1")
+                        alpha = 2 * math.pi * c / CHECKPOINTS
+                        self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
+                        rad = 1.5 * TRACK_RAD
+
+                    checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
+                    # print(f"DEBUG: checkpoint {c} appended")
             case "circle":
                 # Checkpoints generation for circle track
-                # Randomize direction: +1 for left-handed, -1 for right-handed
+                # Randomize direction: +1 for left-handed, -1 for right-handed 
+                # TODO: implement direction change correctly.
                 direction = 1
                 for c in range(CHECKPOINTS):
                     alpha = direction * 2 * math.pi * c / CHECKPOINTS
@@ -360,7 +406,8 @@ class CarRacing(gym.Env, EzPickle):
                     checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
             
         self.road = []
-
+        # print("DEBUG: Checkpoints created:", checkpoints)
+        # time.sleep(2)
         # Go from one checkpoint to another to create track
         
         # TODO: use to calculate track statistics, such as length, centerline, curvature, "walls", racing line, etc.
@@ -411,6 +458,7 @@ class CarRacing(gym.Env, EzPickle):
                 beta += 2 * math.pi
             prev_beta = beta
             proj *= SCALE
+            # print(f"DEBUG: Got to use  track_turn_rate")
             if proj > 0.3:
                 beta -= min(TRACK_TURN_RATE, abs(0.001 * proj))
             if proj < -0.3:
@@ -455,6 +503,7 @@ class CarRacing(gym.Env, EzPickle):
             + np.square(first_perp_y * (track[0][3] - track[-1][3]))
         )
         if well_glued_together > TRACK_DETAIL_STEP:
+            # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
             return False
 
         # Red-white border on hard turns
@@ -675,8 +724,8 @@ class CarRacing(gym.Env, EzPickle):
 
             if not inside_track:
                 self.last_track_idx = closest_idx  # Update to nearest for next step
-                self.reward -= 2
-                step_reward = -2
+                self.reward -= 0.1
+                step_reward = -0.1
             if self.tile_visited_count == len(self.track) or self.new_lap:
                 # Termination due to finishing lap
                 terminated = True
@@ -723,11 +772,17 @@ class CarRacing(gym.Env, EzPickle):
         # computing transformations
         angle = -self.car.hull.angle
         # Animating first second zoom.
-        zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
-        scroll_x = -(self.car.hull.position[0]) * zoom
-        scroll_y = -(self.car.hull.position[1]) * zoom
+        match self.view:
+            case "center":
+                zoom = 4
+                scroll_x = -1
+                scroll_y = -1
+            case "car":
+                zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
+                scroll_x = -(self.car.hull.position[0]) * zoom
+                scroll_y = -(self.car.hull.position[1]) * zoom
         trans = pygame.math.Vector2((scroll_x, scroll_y)).rotate_rad(angle)
-        trans = (WINDOW_W / 2 + trans[0], WINDOW_H / 4 + trans[1])
+        trans = (WINDOW_W / 2 + trans[0], WINDOW_H / 2 + trans[1])
 
         self._render_road(zoom, trans, angle)
         self.car.draw(
@@ -741,7 +796,11 @@ class CarRacing(gym.Env, EzPickle):
         self.surf = pygame.transform.flip(self.surf, False, True)
 
         # showing stats
-        self._render_indicators(WINDOW_W, WINDOW_H)
+        match self.view:
+            case "center":
+                pass
+            case "car":
+                self._render_indicators(WINDOW_W, WINDOW_H)
 
         font = pygame.font.Font(pygame.font.get_default_font(), 42)
         text = font.render("%04i" % self.reward, True, (255, 255, 255), (0, 0, 0))
