@@ -33,8 +33,8 @@ except ImportError as e:
     ) from e
 
 
-STATE_W = 160  # less than Atari 160x192
-STATE_H = 192
+STATE_W = 512  # less than Atari 160x192
+STATE_H = 512
 VIDEO_W = 600
 VIDEO_H = 400
 WINDOW_W = 512
@@ -333,43 +333,27 @@ class CarRacing(gym.Env, EzPickle):
         
         match self.track_style:
             case "NASCAR":
-                # Checkpoints generation for NASCAR oval track
-                # SCALE = 6.0  # Track scale
-                TRACK_RAD = 180 / SCALE  # Track is heavily morphed circle with this radius
-                # PLAYFIELD = 2000 / SCALE  # Game over boundary
-                # FPS = 50  # Frames per second
-                # # ZOOM = 1.0  # Camera zoom
-                # ZOOM = 2.7  # Camera zoom
-                # ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
+                # Checkpoints generation for NASCAR style track
+                S_TRACK_RAD = 180 / SCALE  # Track is heavily morphed circle with this radius
 
-
-                TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
-                # TRACK_TURN_RATE = 0.15
-                # TRACK_WIDTH = 40 / SCALE
-                # BORDER = 8 / SCALE
-                # BORDER_MIN_COUNT = 4
-                # GRASS_DIM = PLAYFIELD / 20.0
-                # MAX_SHAPE_DIM = (
-                #     max(GRASS_DIM, TRACK_WIDTH, TRACK_DETAIL_STEP) * math.sqrt(2) * ZOOM * SCALE
-                # )
-                # print("DEBUG: Using simple track style")
-                CHECKPOINTS = 2
+                S_TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
+                CHECKPOINTS = 20
                 # print(f"DEBUG: Number of checkpoints set to {CHECKPOINTS}")
                 for c in range(CHECKPOINTS):
                     noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
                     alpha = 2 * math.pi * c / CHECKPOINTS + noise
                     # print("DEBUG: noise and alpha set")
-                    rad = self.np_random.uniform(TRACK_RAD / 3, TRACK_RAD)
+                    rad = self.np_random.uniform(S_TRACK_RAD / 3, S_TRACK_RAD)
                     # print(f"DEBUG: rad set to {rad}")
                     if c == 0:
                         # print("DEBUG: c == 0")
                         alpha = 0
-                        rad = 1.5 * TRACK_RAD
+                        rad = 1.5 * S_TRACK_RAD
                     if c == CHECKPOINTS - 1:
                         # print("DEBUG: c == CHECKPOINTS - 1")
                         alpha = 2 * math.pi * c / CHECKPOINTS
                         self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
-                        rad = 1.5 * TRACK_RAD
+                        rad = 1.5 * S_TRACK_RAD
 
                     checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
                     # print(f"DEBUG: checkpoint {c} appended")
@@ -463,8 +447,13 @@ class CarRacing(gym.Env, EzPickle):
                 beta -= min(TRACK_TURN_RATE, abs(0.001 * proj))
             if proj < -0.3:
                 beta += min(TRACK_TURN_RATE, abs(0.001 * proj))
-            x += p1x * TRACK_DETAIL_STEP
-            y += p1y * TRACK_DETAIL_STEP
+            match self.track_style:
+                case "NASCAR":
+                    x += p1x * S_TRACK_DETAIL_STEP
+                    y += p1y * S_TRACK_DETAIL_STEP
+                case _:
+                    x += p1x * TRACK_DETAIL_STEP
+                    y += p1y * TRACK_DETAIL_STEP
             track.append((alpha, prev_beta * 0.5 + beta * 0.5, x, y))
             if laps > 4:
                 break
@@ -502,9 +491,15 @@ class CarRacing(gym.Env, EzPickle):
             np.square(first_perp_x * (track[0][2] - track[-1][2]))
             + np.square(first_perp_y * (track[0][3] - track[-1][3]))
         )
-        if well_glued_together > TRACK_DETAIL_STEP:
-            # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
-            return False
+        match self.track_style:
+            case "NASCAR":
+                if well_glued_together > S_TRACK_DETAIL_STEP:   
+                    # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
+                    return False
+            case _:
+                if well_glued_together > TRACK_DETAIL_STEP:
+                    # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
+                    return False
 
         # Red-white border on hard turns
         border = [False] * len(track)
@@ -777,6 +772,7 @@ class CarRacing(gym.Env, EzPickle):
                 zoom = 4
                 scroll_x = -1
                 scroll_y = -1
+                angle = 0
             case "car":
                 zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
                 scroll_x = -(self.car.hull.position[0]) * zoom
