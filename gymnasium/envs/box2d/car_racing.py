@@ -37,8 +37,8 @@ STATE_W = 512  # less than Atari 160x192
 STATE_H = 512
 VIDEO_W = 600
 VIDEO_H = 400
-WINDOW_W = 512
-WINDOW_H = 512
+WINDOW_W = 1024
+WINDOW_H = 1024
 
 SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
@@ -334,10 +334,10 @@ class CarRacing(gym.Env, EzPickle):
         match self.track_style:
             case "NASCAR":
                 # Checkpoints generation for NASCAR style track
-                S_TRACK_RAD = 180 / SCALE  # Track is heavily morphed circle with this radius
+                S_TRACK_RAD = 400 / SCALE  # Track is heavily morphed circle with this radius
 
                 S_TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
-                CHECKPOINTS = 20
+                # CHECKPOINTS = 20
                 # print(f"DEBUG: Number of checkpoints set to {CHECKPOINTS}")
                 for c in range(CHECKPOINTS):
                     noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
