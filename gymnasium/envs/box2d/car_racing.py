@@ -334,30 +334,32 @@ class CarRacing(gym.Env, EzPickle):
         match self.track_style:
             case "NASCAR":
                 # Checkpoints generation for NASCAR style track
-                S_TRACK_RAD = 400 / SCALE  # Track is heavily morphed circle with this radius
+                N_TRACK_RAD = 400 / SCALE  # Track is heavily morphed circle with this radius
 
-                S_TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
+                N_TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
                 # CHECKPOINTS = 20
                 # print(f"DEBUG: Number of checkpoints set to {CHECKPOINTS}")
                 for c in range(CHECKPOINTS):
                     noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
                     alpha = 2 * math.pi * c / CHECKPOINTS + noise
                     # print("DEBUG: noise and alpha set")
-                    rad = self.np_random.uniform(S_TRACK_RAD / 3, S_TRACK_RAD)
+                    rad = self.np_random.uniform(N_TRACK_RAD / 3, N_TRACK_RAD)
                     # print(f"DEBUG: rad set to {rad}")
                     if c == 0:
                         # print("DEBUG: c == 0")
                         alpha = 0
-                        rad = 1.5 * S_TRACK_RAD
+                        rad = 1.5 * N_TRACK_RAD
                     if c == CHECKPOINTS - 1:
                         # print("DEBUG: c == CHECKPOINTS - 1")
                         alpha = 2 * math.pi * c / CHECKPOINTS
                         self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
-                        rad = 1.5 * S_TRACK_RAD
+                        rad = 1.5 * N_TRACK_RAD
 
                     checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
                     # print(f"DEBUG: checkpoint {c} appended")
-            case "circle":
+            case "circle_big":
+                if self.view == "center":
+                    B_TRACK_RAD = 600 / SCALE
                 # Checkpoints generation for circle track
                 # Randomize direction: +1 for left-handed, -1 for right-handed 
                 # TODO: implement direction change correctly.
@@ -371,7 +373,45 @@ class CarRacing(gym.Env, EzPickle):
                         alpha = direction * 2 * math.pi * c / CHECKPOINTS
                         self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
 
-                    checkpoints.append((alpha, TRACK_RAD * math.cos(alpha), TRACK_RAD * math.sin(alpha)))
+                    checkpoints.append((alpha, B_TRACK_RAD * math.cos(alpha), B_TRACK_RAD * math.sin(alpha)))
+            case "circle_small":
+                if self.view == "center":
+                    S_TRACK_RAD = 250 / SCALE
+                # Checkpoints generation for circle track
+                # Randomize direction: +1 for left-handed, -1 for right-handed 
+                # TODO: implement direction change correctly.
+                direction = 1
+                for c in range(CHECKPOINTS):
+                    alpha = direction * 2 * math.pi * c / CHECKPOINTS
+                    
+                    if c == 0:
+                        alpha = 0
+                    if c == CHECKPOINTS - 1:
+                        alpha = direction * 2 * math.pi * c / CHECKPOINTS
+                        self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
+
+                    checkpoints.append((alpha, S_TRACK_RAD * math.cos(alpha), S_TRACK_RAD * math.sin(alpha)))
+            case "ellipse":
+                if self.view == "center":
+                    A = 600 / SCALE
+                    B = 500 / SCALE
+                    E_TRACK_DETAIL_STEP = 15 / SCALE
+                # Checkpoints generation for circle track
+                # Randomize direction: +1 for left-handed, -1 for right-handed 
+                # TODO: implement direction change correctly.
+                direction = 1
+                for c in range(CHECKPOINTS):
+                    alpha = direction * 2 * math.pi * c / CHECKPOINTS
+                    
+                    if c == 0:
+                        alpha = 0
+                    if c == CHECKPOINTS - 1:
+                        alpha = direction * 2 * math.pi * c / CHECKPOINTS
+                        self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
+                    x = A * math.cos(alpha)
+                    y = B * math.sin(alpha)
+
+                    checkpoints.append((alpha, x, y))
             case _:
                 # original Checkpoints generation
                 for c in range(CHECKPOINTS):
@@ -449,8 +489,11 @@ class CarRacing(gym.Env, EzPickle):
                 beta += min(TRACK_TURN_RATE, abs(0.001 * proj))
             match self.track_style:
                 case "NASCAR":
-                    x += p1x * S_TRACK_DETAIL_STEP
-                    y += p1y * S_TRACK_DETAIL_STEP
+                    x += p1x * N_TRACK_DETAIL_STEP
+                    y += p1y * N_TRACK_DETAIL_STEP
+                case "ellipse":
+                    x += p1x * E_TRACK_DETAIL_STEP
+                    y += p1y * E_TRACK_DETAIL_STEP
                 case _:
                     x += p1x * TRACK_DETAIL_STEP
                     y += p1y * TRACK_DETAIL_STEP
@@ -493,7 +536,11 @@ class CarRacing(gym.Env, EzPickle):
         )
         match self.track_style:
             case "NASCAR":
-                if well_glued_together > S_TRACK_DETAIL_STEP:   
+                if well_glued_together > N_TRACK_DETAIL_STEP:   
+                    # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
+                    return False
+            case "ellipse":
+                if well_glued_together > E_TRACK_DETAIL_STEP:   
                     # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
                     return False
             case _:
