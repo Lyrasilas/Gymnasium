@@ -49,7 +49,7 @@ ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
-TRACK_DETAIL_STEP = 18 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
+TRACK_DETAIL_STEP = 4 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
 TRACK_TURN_RATE = 0.15
 TRACK_WIDTH = 40 / SCALE
 BORDER = 8 / SCALE

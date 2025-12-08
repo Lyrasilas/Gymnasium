@@ -191,7 +191,6 @@ class Car:
             v = w.linearVelocity
             vf = forw[0] * v[0] + forw[1] * v[1]  # forward speed
             vs = side[0] * v[0] + side[1] * v[1]  # side speed
-
             # WHEEL_MOMENT_OF_INERTIA*np.square(w.omega)/2 = E -- energy
             # WHEEL_MOMENT_OF_INERTIA*w.omega * domega/dt = dE/dt = W -- power
             # domega = dt*W/WHEEL_MOMENT_OF_INERTIA/w.omega
@@ -225,8 +224,10 @@ class Car:
             # But dt is finite, that will lead to oscillations if difference is already near zero.
 
             # Random coefficient to cut oscillations in few steps (have no effect on friction_limit)
-            f_force *= 205000 * SIZE * SIZE
-            p_force *= 205000 * SIZE * SIZE
+            # f_force *= 205000 * SIZE * SIZE
+            # p_force *= 205000 * SIZE * SIZE
+            f_force *= 205000 * SIZE * SIZE * 1/2
+            p_force *= 205000 * SIZE * SIZE * 1/2
             force = np.sqrt(np.square(f_force) + np.square(p_force))
 
             # Skid trace
