@@ -37,8 +37,8 @@ STATE_W = 160  # less than Atari 160x192
 STATE_H = 192
 VIDEO_W = 600
 VIDEO_H = 400
-WINDOW_W = 512
-WINDOW_H = 512
+WINDOW_W = 1024
+WINDOW_H = 1024
 
 SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
@@ -49,7 +49,7 @@ ZOOM = 2.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
-TRACK_DETAIL_STEP = 4 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
+TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
 TRACK_TURN_RATE = 0.15
 TRACK_WIDTH = 40 / SCALE
 BORDER = 8 / SCALE
@@ -360,6 +360,8 @@ class CarRacing(gym.Env, EzPickle):
             case "circle_big":
                 if self.view == "center":
                     B_TRACK_RAD = 600 / SCALE
+                else:
+                    B_TRACK_RAD = TRACK_RAD
                 # Checkpoints generation for circle track
                 # Randomize direction: +1 for left-handed, -1 for right-handed 
                 # TODO: implement direction change correctly.
@@ -376,6 +378,8 @@ class CarRacing(gym.Env, EzPickle):
                     checkpoints.append((alpha, B_TRACK_RAD * math.cos(alpha), B_TRACK_RAD * math.sin(alpha)))
             case "circle_small":
                 if self.view == "center":
+                    S_TRACK_RAD = 250 / SCALE
+                else:
                     S_TRACK_RAD = 250 / SCALE
                 # Checkpoints generation for circle track
                 # Randomize direction: +1 for left-handed, -1 for right-handed 
@@ -667,8 +671,10 @@ class CarRacing(gym.Env, EzPickle):
                     "retry to generate track (normal if there are not many"
                     "instances of this message)"
                 )
-        self.car = Car(self.world, *self.track[0][1:4])
-
+        import random
+        n = random.randint(0, len(self.track) - 1)
+        self.car = Car(self.world, *self.track[n][1:4])
+        
         if self.render_mode == "human":
             self.render()
         return self.step(None)[0], {}
@@ -707,30 +713,7 @@ class CarRacing(gym.Env, EzPickle):
 
         self.state = self._render("state_pixels")
 
-        # # Calculate car pixel movement in cropped observation (state_pixels)
-        # angle = -self.car.hull.angle
-        # zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
-        # scroll_x = -(self.car.hull.position[0]) * zoom
-        # scroll_y = -(self.car.hull.position[1]) * zoom
-        # translation = pygame.math.Vector2((scroll_x, scroll_y)).rotate_rad(angle)
-        # translation = (WINDOW_W / 2 + translation[0], WINDOW_H / 4 + translation[1])
-        # prev_pixel_full = self._world_to_pixel(prev_world_pos, zoom, translation, angle)
-        # curr_world_pos = tuple(self.car.hull.position)
-        # curr_pixel_full = self._world_to_pixel(curr_world_pos, zoom, translation, angle)
 
-        # # Map full window pixel positions to cropped observation (state_pixels)
-        # crop_x = (WINDOW_W - STATE_W) // 2
-        # crop_y = (WINDOW_H - STATE_H) // 2
-        # prev_obs_pixel = (prev_pixel_full[0] - crop_x, prev_pixel_full[1] - crop_y)
-        # curr_obs_pixel = (curr_pixel_full[0] - crop_x, curr_pixel_full[1] - crop_y)
-        # # Rescale to cropped observation pixel units
-        # prev_obs_pixel_scaled = (prev_obs_pixel[0] * STATE_W / WINDOW_W, prev_obs_pixel[1] * STATE_H / WINDOW_H)
-        # curr_obs_pixel_scaled = (curr_obs_pixel[0] * STATE_W / WINDOW_W, curr_obs_pixel[1] * STATE_H / WINDOW_H)
-        # pixel_dist_obs_scaled = math.sqrt(
-        #     (curr_obs_pixel_scaled[0] - prev_obs_pixel_scaled[0])**2 +
-        #     (curr_obs_pixel_scaled[1] - prev_obs_pixel_scaled[1])**2
-        # )
-        # # print(f"Car pixel movement in cropped obs (scaled): {pixel_dist_obs_scaled:.2f}")
 
         step_reward = 0
         terminated = False
@@ -816,12 +799,14 @@ class CarRacing(gym.Env, EzPickle):
         # Animating first second zoom.
         match self.view:
             case "center":
-                zoom = 4
+                zoom = 2
                 scroll_x = -1
                 scroll_y = -1
                 angle = 0
             case "car":
-                zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
+                # zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
+                # zoom = 4
+                zoom = ZOOM * SCALE
                 scroll_x = -(self.car.hull.position[0]) * zoom
                 scroll_y = -(self.car.hull.position[1]) * zoom
         trans = pygame.math.Vector2((scroll_x, scroll_y)).rotate_rad(angle)

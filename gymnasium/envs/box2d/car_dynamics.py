@@ -268,7 +268,7 @@ class Car:
 
     def draw(self, surface, zoom, translation, angle, draw_particles=True, color_hulls=False):
         import pygame.draw
-
+        
         if draw_particles:
             for p in self.particles:
                 poly = [pygame.math.Vector2(c).rotate_rad(angle) for c in p.poly]
