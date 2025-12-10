@@ -671,9 +671,14 @@ class CarRacing(gym.Env, EzPickle):
                     "retry to generate track (normal if there are not many"
                     "instances of this message)"
                 )
+        # randomize car start position
         import random
         n = random.randint(0, len(self.track) - 1)
         self.car = Car(self.world, *self.track[n][1:4])
+        
+        # For debugging, start always at beginning of track
+        # n = random.randint(0, len(self.track) - 1)
+        # self.car = Car(self.world, *self.track[0][1:4])
         
         if self.render_mode == "human":
             self.render()
