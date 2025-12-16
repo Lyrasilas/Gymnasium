@@ -45,7 +45,7 @@ TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
 FPS = 30  # Frames per second
 # ZOOM = 1.0  # Camera zoom
-ZOOM = 2.7  # Camera zoom
+ZOOM = 5.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
