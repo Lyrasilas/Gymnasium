@@ -396,10 +396,9 @@ class CarRacing(gym.Env, EzPickle):
 
                     checkpoints.append((alpha, S_TRACK_RAD * math.cos(alpha), S_TRACK_RAD * math.sin(alpha)))
             case "ellipse":
-                if self.view == "center":
-                    A = 600 / SCALE
-                    B = 500 / SCALE
-                    E_TRACK_DETAIL_STEP = 15 / SCALE
+                A = 600 / SCALE
+                B = 500 / SCALE
+                E_TRACK_DETAIL_STEP = 15 / SCALE
                 # Checkpoints generation for circle track
                 # Randomize direction: +1 for left-handed, -1 for right-handed 
                 # TODO: implement direction change correctly.
