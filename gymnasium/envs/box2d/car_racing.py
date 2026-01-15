@@ -753,8 +753,8 @@ class CarRacing(gym.Env, EzPickle):
 
             if not inside_track:
                 self.last_track_idx = closest_idx  # Update to nearest for next step
-                self.reward -= 0.1
-                step_reward = -0.1
+                self.reward -= 0.5
+                step_reward = -0.5
             if self.tile_visited_count == len(self.track) or self.new_lap:
                 # Termination due to finishing lap
                 terminated = True
