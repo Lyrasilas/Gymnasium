@@ -253,7 +253,7 @@ class CarRacing(gym.Env, EzPickle):
         self.invisible_state_window = None
         self.invisible_video_window = None
         self.road = None
-        self.last_track_idx = 0
+        self.last_track_idx = None
         self.car: Car | None = None
         self.reward = 0.0
         self.prev_reward = 0.0
@@ -283,6 +283,9 @@ class CarRacing(gym.Env, EzPickle):
         self.track_style = track_style
         self.num_checkpoints = num_checkpoints
         self.view = view
+
+        # Track previous distance to next track point for reward shaping
+        self.prev_dist_to_next_track = None
 
     def _destroy(self):
         if not self.road:
@@ -653,6 +656,9 @@ class CarRacing(gym.Env, EzPickle):
         self.new_lap = False
         self.road_poly = []
 
+        # Reset previous distance tracker
+        self.prev_dist_to_next_track = None
+
         if self.domain_randomize:
             randomize = True
             if isinstance(options, dict):
@@ -674,7 +680,7 @@ class CarRacing(gym.Env, EzPickle):
         import random
         n = random.randint(0, len(self.track) - 1)
         self.car = Car(self.world, *self.track[n][1:4])
-        
+        self.last_track_idx = n
         # For debugging, start always at beginning of track
         # n = random.randint(0, len(self.track) - 1)
         # self.car = Car(self.world, *self.track[0][1:4])
@@ -734,13 +740,14 @@ class CarRacing(gym.Env, EzPickle):
             x, y = self.car.hull.position
             inside_track = False
             closest_idx = self.last_track_idx
+            # print(f"Last track idx: {self.last_track_idx}")
             min_dist = float('inf')
             window = 10  # Number of points to check before and after last index
 
-            start = max(0, closest_idx - window)
-            end = min(len(self.track), closest_idx + window + 1)
-
-            for i in range(start, end):
+            num_points = len(self.track)
+            # Wrap the window using modulo arithmetic
+            for offset in range(-window, window + 1):
+                i = (closest_idx + offset) % num_points
                 track_x, track_y = self.track[i][-2], self.track[i][-1]
                 dist = np.sqrt((x - track_x) ** 2 + (y - track_y) ** 2)
                 if dist < min_dist:
@@ -749,12 +756,38 @@ class CarRacing(gym.Env, EzPickle):
                 if dist < TRACK_WIDTH:
                     inside_track = True
                     self.last_track_idx = i  # Remember for next step
-                    break
+
+            # --- Reward for approaching or moving away from the nearest track point ---
+            # Find the nearest track point to the car
+            nearest_idx = None
+            nearest_dist = float('inf')
+            for i, point in enumerate(self.track):
+                track_x, track_y = point[-2], point[-1]
+                dist = np.sqrt((x - track_x) ** 2 + (y - track_y) ** 2)
+                if dist < nearest_dist:
+                    nearest_dist = dist
+                    nearest_idx = i
+            # Use the nearest point for reward shaping only if car is off track
+            if nearest_idx is not None:
+                dist_to_nearest = nearest_dist
+                if dist_to_nearest > TRACK_WIDTH:
+                    if self.prev_dist_to_next_track is not None:
+                        delta = self.prev_dist_to_next_track - dist_to_nearest
+                        # Proportional reward/penalty: the further away, the higher the loss
+                        # and the closer, the higher the gain (scaled by delta)
+                        self.reward += delta * 0.05  # Tune scaling factor as needed
+                        step_reward = delta * 0.05
+                        # print(f"Reward shaping applied (off track): delta={delta:.3f}, step_reward={step_reward:.3f}")
+                    self.prev_dist_to_next_track = dist_to_nearest
+                else:
+                    self.prev_dist_to_next_track = None  # Reset when back on track
+            # --- End reward shaping ---
 
             if not inside_track:
                 self.last_track_idx = closest_idx  # Update to nearest for next step
                 self.reward -= 0.5
                 step_reward = -0.5
+                # print("Off track penalty applied.")
             if self.tile_visited_count == len(self.track) or self.new_lap:
                 # Termination due to finishing lap
                 terminated = True
