@@ -266,7 +266,7 @@ class Car:
                 True,
             )
 
-    def draw(self, surface, zoom, translation, angle, draw_particles=True, color_hulls=False):
+    def draw(self, surface, zoom, translation, angle, draw_particles=True, color_hulls=True):
         import pygame.draw
         
         if draw_particles:

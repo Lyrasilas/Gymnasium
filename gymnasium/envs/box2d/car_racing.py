@@ -33,8 +33,10 @@ except ImportError as e:
     ) from e
 
 
-STATE_W = 160  # less than Atari 160x192
-STATE_H = 192
+# STATE_W = 160  # less than Atari 160x192
+# STATE_H = 192
+STATE_W = 512
+STATE_H = 512
 VIDEO_W = 600
 VIDEO_H = 400
 WINDOW_W = 1024
@@ -340,7 +342,7 @@ class CarRacing(gym.Env, EzPickle):
                 N_TRACK_RAD = 400 / SCALE  # Track is heavily morphed circle with this radius
 
                 N_TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
-                # CHECKPOINTS = 20
+                CHECKPOINTS = 2
                 # print(f"DEBUG: Number of checkpoints set to {CHECKPOINTS}")
                 for c in range(CHECKPOINTS):
                     noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
@@ -399,16 +401,17 @@ class CarRacing(gym.Env, EzPickle):
 
                     checkpoints.append((alpha, S_TRACK_RAD * math.cos(alpha), S_TRACK_RAD * math.sin(alpha)))
             case "ellipse":
-                A = 600 / SCALE
-                B = 500 / SCALE
-                E_TRACK_DETAIL_STEP = 15 / SCALE
-                # Checkpoints generation for circle track
-                # Randomize direction: +1 for left-handed, -1 for right-handed 
-                # TODO: implement direction change correctly.
+                A = 1300 / SCALE
+                B = 1000 / SCALE
+                E_TRACK_DETAIL_STEP = 25 / SCALE
+                # Checkpoints generation for ellipse track
                 direction = 1
+                CHECKPOINTS = 20
+                x_vals = []
+                y_vals = []
+                alpha_vals = []
                 for c in range(CHECKPOINTS):
                     alpha = direction * 2 * math.pi * c / CHECKPOINTS
-                    
                     if c == 0:
                         alpha = 0
                     if c == CHECKPOINTS - 1:
@@ -416,8 +419,39 @@ class CarRacing(gym.Env, EzPickle):
                         self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
                     x = A * math.cos(alpha)
                     y = B * math.sin(alpha)
-
+                    x_vals.append(x)
+                    y_vals.append(y)
+                    alpha_vals.append(alpha)
+                    print(f"DEBUG: Ellipse checkpoint {c}: alpha={alpha}, x={x}, y={y}")
                     checkpoints.append((alpha, x, y))
+                # Plot x and y values for ellipse checkpoints as arrows in direction alpha
+                try:
+                    import matplotlib.pyplot as plt
+                    plt.figure()
+                    plt.title('Ellipse Checkpoints (x vs y) with Direction Arrows')
+                    plt.xlabel('x')
+                    plt.ylabel('y')
+                    plt.axis('equal')
+                    plt.grid(True)
+                    # Arrow directions: dx = cos(alpha), dy = sin(alpha)
+                    # Make arrows longer for visibility
+                    # Arrow direction: unit vector in alpha direction
+                    arrow_length = 100  # adjust as needed for your scale
+                    dx = arrow_length * np.cos(alpha_vals)
+                    dy = arrow_length * np.sin(alpha_vals)
+                    plt.quiver(
+                        x_vals, y_vals, dx, dy,
+                        angles='xy', scale_units='xy', scale=1,
+                        width=0.008, color='r', headwidth=4, headlength=6, headaxislength=5
+                    )
+                    # Plot all points in blue, first point in green
+                    plt.scatter(x_vals[1:], y_vals[1:], color='b', s=10)
+                    plt.scatter(x_vals[0], y_vals[0], color='g', s=40, label='First checkpoint', zorder=5)
+                    plt.legend()
+                    plt.savefig('ellipse_checkpoints_xy.png')
+                    plt.close()
+                except ImportError:
+                    print("matplotlib not installed: skipping ellipse checkpoint plot.")
             case _:
                 # original Checkpoints generation
                 for c in range(CHECKPOINTS):
@@ -856,6 +890,7 @@ class CarRacing(gym.Env, EzPickle):
             trans,
             angle,
             mode not in ["state_pixels_list", "state_pixels"],
+            color_hulls = True,
         )
 
         self.surf = pygame.transform.flip(self.surf, False, True)
