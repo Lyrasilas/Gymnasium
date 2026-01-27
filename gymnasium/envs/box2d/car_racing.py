@@ -32,11 +32,12 @@ except ImportError as e:
         'pygame is not installed, run `pip install "gymnasium[box2d]"`'
     ) from e
 
-
-# STATE_W = 160  # less than Atari 160x192
-# STATE_H = 192
-STATE_W = 512
-STATE_H = 512
+# STATE_W = 96
+# STATE_H = 96
+STATE_W = 192  # less than Atari 160x192
+STATE_H = 192
+# STATE_W = 512
+# STATE_H = 512
 VIDEO_W = 600
 VIDEO_H = 400
 WINDOW_W = 1024
