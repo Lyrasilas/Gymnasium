@@ -34,7 +34,7 @@ except ImportError as e:
 
 # STATE_W = 96
 # STATE_H = 96
-STATE_W = 192  # less than Atari 160x192
+STATE_W = 160  # less than Atari 160x192
 STATE_H = 192
 # STATE_W = 512
 # STATE_H = 512
@@ -891,7 +891,7 @@ class CarRacing(gym.Env, EzPickle):
             trans,
             angle,
             mode not in ["state_pixels_list", "state_pixels"],
-            color_hulls = True,
+            color_hulls = False,
         )
 
         self.surf = pygame.transform.flip(self.surf, False, True)
