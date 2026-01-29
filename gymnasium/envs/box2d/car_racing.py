@@ -286,6 +286,10 @@ class CarRacing(gym.Env, EzPickle):
         self.track_style = track_style
         self.num_checkpoints = num_checkpoints
         self.view = view
+        self.track_max_x = 0
+        self.track_max_y = 0
+        self.track_min_x = 0
+        self.track_min_y = 0
 
         # Track previous distance to next track point for reward shaping
         self.prev_dist_to_next_track = None
@@ -719,7 +723,7 @@ class CarRacing(gym.Env, EzPickle):
         # For debugging, start always at beginning of track
         # n = random.randint(0, len(self.track) - 1)
         # self.car = Car(self.world, *self.track[0][1:4])
-        
+        self._compute_track_bounds()
         if self.render_mode == "human":
             self.render()
         return self.step(None)[0], {}
@@ -849,6 +853,25 @@ class CarRacing(gym.Env, EzPickle):
         else:
             return self._render(self.render_mode)
 
+    def _compute_track_bounds(self):
+        """
+        Compute the min/max x and y of the track for zooming.
+        Sets self.track_min_x, self.track_max_x, self.track_min_y, self.track_max_y.
+        """
+        if not hasattr(self, "track") or not self.track:
+            # Track not yet generated
+            self.track_min_x = self.track_max_x = 0
+            self.track_min_y = self.track_max_y = 0
+            return
+        xs = [p[2] for p in self.track]
+        ys = [p[3] for p in self.track]
+
+        self.track_min_x = min(xs)
+        self.track_max_x = max(xs)
+        self.track_min_y = min(ys)
+        self.track_max_y = max(ys)
+
+        
     def _render(self, mode: str):
         assert mode in self.metadata["render_modes"]
 
@@ -871,9 +894,13 @@ class CarRacing(gym.Env, EzPickle):
         # Animating first second zoom.
         match self.view:
             case "center":
-                zoom = 2
-                scroll_x = -1
-                scroll_y = -1
+                center = (
+                    (self.track_min_x + self.track_max_x) / 2,
+                    (self.track_min_y + self.track_max_y) / 2,
+                )
+                zoom = 2.5
+                scroll_x = -(center[0]) * zoom
+                scroll_y = -(center[1]) * zoom
                 angle = 0
             case "car":
                 # zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
