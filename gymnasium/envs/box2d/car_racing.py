@@ -755,6 +755,16 @@ class CarRacing(gym.Env, EzPickle):
                 self.car.gas(0.2 * (action == 3))
                 self.car.brake(0.8 * (action == 4))
 
+        # PHYSICS_TIMESTEP = 1.0 / 60.0
+
+        # steps = int((1.0 / FPS) / PHYSICS_TIMESTEP)
+        # for _ in range(steps):
+        #     self.car.step(PHYSICS_TIMESTEP)
+        #     self.world.Step(PHYSICS_TIMESTEP, 6 * 30, 2 * 30)
+        #     self.state = self.render()
+        #     self.state = self._render("state_pixels")
+
+        
         self.car.step(1.0 / FPS)
         # print(self.track)
         self.world.Step(1.0 / FPS, 6 * 30, 2 * 30)
@@ -836,7 +846,6 @@ class CarRacing(gym.Env, EzPickle):
                 terminated = True
                 info["lap_finished"] = False
                 step_reward = -100
-
         if self.render_mode == "human":
             self.render()
         return self.state, step_reward, terminated, truncated, info
