@@ -778,12 +778,15 @@ class CarRacing(gym.Env, EzPickle):
         terminated = False
         truncated = False
         info = {}
+        percent = 100.0 * self.tile_visited_count / len(self.track)
         if action is not None:  # First step without action, called from reset()
             self.reward -= 0.1
+            print(f"Step reward penalty: -0.1 for time step.")
             # We actually don't want to count fuel spent, we want car to be faster.
             # self.reward -=  10 * self.car.fuel_spent / ENGINE_POWER
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
+            print(f"Step reward from previous: {step_reward:.3f}")
             self.prev_reward = self.reward
             # Check if car is within track limits
             x, y = self.car.hull.position
@@ -821,12 +824,11 @@ class CarRacing(gym.Env, EzPickle):
                 dist_to_nearest = nearest_dist
                 if dist_to_nearest > TRACK_WIDTH:
                     if self.prev_dist_to_next_track is not None:
-                        delta = self.prev_dist_to_next_track - dist_to_nearest
-                        # Proportional reward/penalty: the further away, the higher the loss
-                        # and the closer, the higher the gain (scaled by delta)
-                        self.reward += delta * 0.05  # Tune scaling factor as needed
-                        step_reward = delta * 0.05
-                        # print(f"Reward shaping applied (off track): delta={delta:.3f}, step_reward={step_reward:.3f}")
+                        delta = dist_to_nearest - self.prev_dist_to_next_track
+                        sign = np.sign(-delta)  # positive if getting closer, negative if getting farther
+                        # Reward is larger when farther from track, smaller when close
+                        shaping_reward = sign * dist_to_nearest * 0.05  # scale as needed
+                        self.reward += shaping_reward
                     self.prev_dist_to_next_track = dist_to_nearest
                 else:
                     self.prev_dist_to_next_track = None  # Reset when back on track
@@ -834,20 +836,24 @@ class CarRacing(gym.Env, EzPickle):
 
             if not inside_track:
                 self.last_track_idx = closest_idx  # Update to nearest for next step
-                self.reward -= 0.5
-                step_reward = -0.5
+                self.reward += -0.5
+                # step_reward += -0.5
                 # print("Off track penalty applied.")
             if self.tile_visited_count == len(self.track) or self.new_lap:
                 # Termination due to finishing lap
                 terminated = True
                 info["lap_finished"] = True
+                print("Completion percent:", format(percent, '.1f'), "%")
             x, y = self.car.hull.position
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
                 terminated = True
                 info["lap_finished"] = False
                 step_reward = -100
+                print("Completion percent:", format(percent, '.1f'), "%")
         if self.render_mode == "human":
             self.render()
+        info["completion_percent"] = percent
+
         return self.state, step_reward, terminated, truncated, info
 
     def render(self):
