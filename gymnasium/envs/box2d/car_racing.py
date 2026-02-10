@@ -781,12 +781,12 @@ class CarRacing(gym.Env, EzPickle):
         percent = 100.0 * self.tile_visited_count / len(self.track)
         if action is not None:  # First step without action, called from reset()
             self.reward -= 0.1
-            print(f"Step reward penalty: -0.1 for time step.")
+            # print(f"Step reward penalty: -0.1 for time step.")
             # We actually don't want to count fuel spent, we want car to be faster.
             # self.reward -=  10 * self.car.fuel_spent / ENGINE_POWER
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
-            print(f"Step reward from previous: {step_reward:.3f}")
+            # print(f"Step reward from previous: {step_reward:.3f}")
             self.prev_reward = self.reward
             # Check if car is within track limits
             x, y = self.car.hull.position
