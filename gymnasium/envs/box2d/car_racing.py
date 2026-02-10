@@ -46,7 +46,7 @@ WINDOW_H = 1024
 SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
-FPS = 30  # Frames per second
+FPS = 45  # Frames per second
 # ZOOM = 1.0  # Camera zoom
 ZOOM = 5.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
@@ -1031,7 +1031,7 @@ class CarRacing(gym.Env, EzPickle):
             np.square(self.car.hull.linearVelocity[0])
             + np.square(self.car.hull.linearVelocity[1])
         )
-
+        print(f"True speed: {true_speed:.3f}")
         # simple wrapper to render if the indicator value is above a threshold
         def render_if_min(value, points, color):
             if abs(value) > 1e-4:
