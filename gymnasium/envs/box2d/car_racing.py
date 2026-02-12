@@ -46,7 +46,7 @@ WINDOW_H = 1024
 SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
-FPS = 45  # Frames per second
+FPS = 30  # Frames per second
 # ZOOM = 1.0  # Camera zoom
 ZOOM = 5.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
@@ -716,13 +716,13 @@ class CarRacing(gym.Env, EzPickle):
                     "instances of this message)"
                 )
         # randomize car start position
-        import random
-        n = random.randint(0, len(self.track) - 1)
-        self.car = Car(self.world, *self.track[n][1:4])
-        self.last_track_idx = n
-        # For debugging, start always at beginning of track
+        # import random
         # n = random.randint(0, len(self.track) - 1)
-        # self.car = Car(self.world, *self.track[0][1:4])
+        # self.car = Car(self.world, *self.track[n][1:4])
+        # self.last_track_idx = n
+
+        self.car = Car(self.world, *self.track[0][1:4])
+        self.last_track_idx = 0
         self._compute_track_bounds()
         if self.render_mode == "human":
             self.render()
@@ -790,7 +790,7 @@ class CarRacing(gym.Env, EzPickle):
             self.prev_reward = self.reward
             # Check if car is within track limits
             x, y = self.car.hull.position
-            inside_track = False
+            inside_middle_track = False
             closest_idx = self.last_track_idx
             # print(f"Last track idx: {self.last_track_idx}")
             min_dist = float('inf')
@@ -805,8 +805,8 @@ class CarRacing(gym.Env, EzPickle):
                 if dist < min_dist:
                     min_dist = dist
                     closest_idx = i
-                if dist < TRACK_WIDTH:
-                    inside_track = True
+                if dist < TRACK_WIDTH / 2:
+                    inside_middle_track = True
                     self.last_track_idx = i  # Remember for next step
 
             # --- Reward for approaching or moving away from the nearest track point ---
@@ -822,7 +822,7 @@ class CarRacing(gym.Env, EzPickle):
             # Use the nearest point for reward shaping only if car is off track
             if nearest_idx is not None:
                 dist_to_nearest = nearest_dist
-                if dist_to_nearest > TRACK_WIDTH:
+                if dist_to_nearest > TRACK_WIDTH / 2:
                     if self.prev_dist_to_next_track is not None:
                         delta = dist_to_nearest - self.prev_dist_to_next_track
                         sign = np.sign(-delta)  # positive if getting closer, negative if getting farther
@@ -834,9 +834,9 @@ class CarRacing(gym.Env, EzPickle):
                     self.prev_dist_to_next_track = None  # Reset when back on track
             # --- End reward shaping ---
 
-            if not inside_track:
+            if not inside_middle_track:
                 self.last_track_idx = closest_idx  # Update to nearest for next step
-                self.reward += -0.5
+                self.reward += -1
                 # step_reward += -0.5
                 # print("Off track penalty applied.")
             if self.tile_visited_count == len(self.track) or self.new_lap:
