@@ -47,8 +47,8 @@ SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
 FPS = 30  # Frames per second
-# ZOOM = 1.0  # Camera zoom
-ZOOM = 2.0  # Camera zoom
+# ZOOM = 2.5  # Camera zoom
+ZOOM = 5.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
@@ -342,31 +342,6 @@ class CarRacing(gym.Env, EzPickle):
         checkpoints = []
         
         match self.track_style:
-            case "NASCAR":
-                # Checkpoints generation for NASCAR style track
-                N_TRACK_RAD = 400 / SCALE  # Track is heavily morphed circle with this radius
-
-                N_TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
-                CHECKPOINTS = 2
-                # print(f"DEBUG: Number of checkpoints set to {CHECKPOINTS}")
-                for c in range(CHECKPOINTS):
-                    noise = self.np_random.uniform(0, 2 * math.pi * 1 / CHECKPOINTS)
-                    alpha = 2 * math.pi * c / CHECKPOINTS + noise
-                    # print("DEBUG: noise and alpha set")
-                    rad = self.np_random.uniform(N_TRACK_RAD / 3, N_TRACK_RAD)
-                    # print(f"DEBUG: rad set to {rad}")
-                    if c == 0:
-                        # print("DEBUG: c == 0")
-                        alpha = 0
-                        rad = 1.5 * N_TRACK_RAD
-                    if c == CHECKPOINTS - 1:
-                        # print("DEBUG: c == CHECKPOINTS - 1")
-                        alpha = 2 * math.pi * c / CHECKPOINTS
-                        self.start_alpha = 2 * math.pi * (-0.5) / CHECKPOINTS
-                        rad = 1.5 * N_TRACK_RAD
-
-                    checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
-                    # print(f"DEBUG: checkpoint {c} appended")
             case "circle_big":
                 if self.view == "center":
                     B_TRACK_RAD = 600 / SCALE
@@ -404,59 +379,7 @@ class CarRacing(gym.Env, EzPickle):
                         alpha = direction * 2 * math.pi * c / CHECKPOINTS
                         self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
 
-                    checkpoints.append((alpha, S_TRACK_RAD * math.cos(alpha), S_TRACK_RAD * math.sin(alpha)))
-            case "ellipse":
-                A = 1300 / SCALE
-                B = 1000 / SCALE
-                E_TRACK_DETAIL_STEP = 25 / SCALE
-                # Checkpoints generation for ellipse track
-                direction = 1
-                CHECKPOINTS = 20
-                x_vals = []
-                y_vals = []
-                alpha_vals = []
-                for c in range(CHECKPOINTS):
-                    alpha = direction * 2 * math.pi * c / CHECKPOINTS
-                    if c == 0:
-                        alpha = 0
-                    if c == CHECKPOINTS - 1:
-                        alpha = direction * 2 * math.pi * c / CHECKPOINTS
-                        self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
-                    x = A * math.cos(alpha)
-                    y = B * math.sin(alpha)
-                    x_vals.append(x)
-                    y_vals.append(y)
-                    alpha_vals.append(alpha)
-                    print(f"DEBUG: Ellipse checkpoint {c}: alpha={alpha}, x={x}, y={y}")
-                    checkpoints.append((alpha, x, y))
-                # Plot x and y values for ellipse checkpoints as arrows in direction alpha
-                try:
-                    import matplotlib.pyplot as plt
-                    plt.figure()
-                    plt.title('Ellipse Checkpoints (x vs y) with Direction Arrows')
-                    plt.xlabel('x')
-                    plt.ylabel('y')
-                    plt.axis('equal')
-                    plt.grid(True)
-                    # Arrow directions: dx = cos(alpha), dy = sin(alpha)
-                    # Make arrows longer for visibility
-                    # Arrow direction: unit vector in alpha direction
-                    arrow_length = 100  # adjust as needed for your scale
-                    dx = arrow_length * np.cos(alpha_vals)
-                    dy = arrow_length * np.sin(alpha_vals)
-                    plt.quiver(
-                        x_vals, y_vals, dx, dy,
-                        angles='xy', scale_units='xy', scale=1,
-                        width=0.008, color='r', headwidth=4, headlength=6, headaxislength=5
-                    )
-                    # Plot all points in blue, first point in green
-                    plt.scatter(x_vals[1:], y_vals[1:], color='b', s=10)
-                    plt.scatter(x_vals[0], y_vals[0], color='g', s=40, label='First checkpoint', zorder=5)
-                    plt.legend()
-                    plt.savefig('ellipse_checkpoints_xy.png')
-                    plt.close()
-                except ImportError:
-                    print("matplotlib not installed: skipping ellipse checkpoint plot.")
+                    checkpoints.append((alpha, S_TRACK_RAD * math.cos(alpha), S_TRACK_RAD * math.sin(alpha)))  
             case _:
                 # original Checkpoints generation
                 for c in range(CHECKPOINTS):
@@ -533,12 +456,6 @@ class CarRacing(gym.Env, EzPickle):
             if proj < -0.3:
                 beta += min(TRACK_TURN_RATE, abs(0.001 * proj))
             match self.track_style:
-                case "NASCAR":
-                    x += p1x * N_TRACK_DETAIL_STEP
-                    y += p1y * N_TRACK_DETAIL_STEP
-                case "ellipse":
-                    x += p1x * E_TRACK_DETAIL_STEP
-                    y += p1y * E_TRACK_DETAIL_STEP
                 case _:
                     x += p1x * TRACK_DETAIL_STEP
                     y += p1y * TRACK_DETAIL_STEP
@@ -580,14 +497,6 @@ class CarRacing(gym.Env, EzPickle):
             + np.square(first_perp_y * (track[0][3] - track[-1][3]))
         )
         match self.track_style:
-            case "NASCAR":
-                if well_glued_together > N_TRACK_DETAIL_STEP:   
-                    # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
-                    return False
-            case "ellipse":
-                if well_glued_together > E_TRACK_DETAIL_STEP:   
-                    # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
-                    return False
             case _:
                 if well_glued_together > TRACK_DETAIL_STEP:
                     # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
@@ -1031,7 +940,7 @@ class CarRacing(gym.Env, EzPickle):
             np.square(self.car.hull.linearVelocity[0])
             + np.square(self.car.hull.linearVelocity[1])
         )
-        print(f"True speed: {true_speed:.3f}")
+        # print(f"True speed: {true_speed:.3f}")
         # simple wrapper to render if the indicator value is above a threshold
         def render_if_min(value, points, color):
             if abs(value) > 1e-4:
