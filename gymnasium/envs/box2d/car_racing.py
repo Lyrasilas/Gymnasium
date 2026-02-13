@@ -47,8 +47,8 @@ SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
 FPS = 30  # Frames per second
-# ZOOM = 2.5  # Camera zoom
-ZOOM = 5.7  # Camera zoom
+ZOOM = 2.5  # Camera zoom
+# ZOOM = 5.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
@@ -625,13 +625,13 @@ class CarRacing(gym.Env, EzPickle):
                     "instances of this message)"
                 )
         # randomize car start position
-        # import random
-        # n = random.randint(0, len(self.track) - 1)
-        # self.car = Car(self.world, *self.track[n][1:4])
-        # self.last_track_idx = n
+        import random
+        n = random.randint(0, len(self.track) - 1)
+        self.car = Car(self.world, *self.track[n][1:4])
+        self.last_track_idx = n
 
-        self.car = Car(self.world, *self.track[0][1:4])
-        self.last_track_idx = 0
+        # self.car = Car(self.world, *self.track[0][1:4])
+        # self.last_track_idx = 0
         self._compute_track_bounds()
         if self.render_mode == "human":
             self.render()
@@ -747,10 +747,7 @@ class CarRacing(gym.Env, EzPickle):
                         # shaping_reward = sign * dist_to_nearest * 0.5  # scale as needed
                         shaping_reward = sign * 1
                         self.reward += shaping_reward
-                        print(f"Reward shaping: {shaping_reward:.3f} (dist to track: {dist_to_nearest:.3f}, delta: {delta:.3f})")
-                        # print(self.car.hull.angle, self.track[nearest_idx][1])
-                        time.sleep(1)
-                        print(step_reward)
+                        
                     self.prev_dist_to_next_track = dist_to_nearest
                 else:
                     self.prev_dist_to_next_track = None  # Reset when back on track
