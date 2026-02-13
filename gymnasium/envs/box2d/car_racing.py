@@ -714,7 +714,7 @@ class CarRacing(gym.Env, EzPickle):
                 if dist < min_dist:
                     min_dist = dist
                     closest_idx = i
-                if dist < TRACK_WIDTH / 2:
+                if dist < TRACK_WIDTH:
                     inside_middle_track = True
                     self.last_track_idx = i  # Remember for next step
 
@@ -728,6 +728,14 @@ class CarRacing(gym.Env, EzPickle):
                 if dist < nearest_dist:
                     nearest_dist = dist
                     nearest_idx = i
+            vec_to_center = np.array([x - self.track[nearest_idx][-2], y - self.track[nearest_idx][-1]])
+            car_direction = np.array([np.cos(self.car.hull.angle), np.sin(self.car.hull.angle)])
+            lateral_dir = np.cross(car_direction, vec_to_center)
+            # print(lateral_dir)
+            if lateral_dir > 0 and action[0] > 0 :
+                self.reward += 1  # Reward for steering towards track when on the left)
+            if lateral_dir < 0 and action[0] < 0 :
+                self.reward += 1  # Reward for steering towards track when on the right
             # Use the nearest point for reward shaping only if car is off track
             if nearest_idx is not None:
                 dist_to_nearest = nearest_dist
@@ -736,8 +744,13 @@ class CarRacing(gym.Env, EzPickle):
                         delta = dist_to_nearest - self.prev_dist_to_next_track
                         sign = np.sign(-delta)  # positive if getting closer, negative if getting farther
                         # Reward is larger when farther from track, smaller when close
-                        shaping_reward = sign * dist_to_nearest * 0.05  # scale as needed
+                        # shaping_reward = sign * dist_to_nearest * 0.5  # scale as needed
+                        shaping_reward = sign * 1
                         self.reward += shaping_reward
+                        print(f"Reward shaping: {shaping_reward:.3f} (dist to track: {dist_to_nearest:.3f}, delta: {delta:.3f})")
+                        # print(self.car.hull.angle, self.track[nearest_idx][1])
+                        time.sleep(1)
+                        print(step_reward)
                     self.prev_dist_to_next_track = dist_to_nearest
                 else:
                     self.prev_dist_to_next_track = None  # Reset when back on track
@@ -959,8 +972,7 @@ class CarRacing(gym.Env, EzPickle):
             (0, 0, 255),
         )
         render_if_min(
-            self.car.wheels[2].omega,
-            vertical_ind(9, 0.01 * self.car.wheels[2].omega),
+            self.car.wheels[2].omega,            vertical_ind(9, 0.01 * self.car.wheels[2].omega),
             (51, 0, 255),
         )
         render_if_min(
