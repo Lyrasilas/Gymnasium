@@ -216,8 +216,8 @@ class Car:
                 w.omega += dir * val
             w.phase += w.omega * dt
 
-            # if w.omega > 100.0:
-            #     w.omega = 100.0
+            if w.omega > 100.0:
+                w.omega = 100.0
             
             vr = w.omega * w.wheel_rad  # rotating wheel speed
             f_force = -vf + vr  # force direction is direction of speed difference
