@@ -34,10 +34,10 @@ except ImportError as e:
 
 # STATE_W = 96
 # STATE_H = 96
-# STATE_W = 160  # less than Atari 160x192
-# STATE_H = 192
-STATE_W = 512
-STATE_H = 512
+STATE_W = 160  # less than Atari 160x192
+STATE_H = 192
+# STATE_W = 512
+# STATE_H = 512
 VIDEO_W = 600
 VIDEO_H = 400
 WINDOW_W = 1024
@@ -47,8 +47,8 @@ SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
 FPS = 30  # Frames per second
-# ZOOM = 2.5  # Camera zoom
-ZOOM = 5.7  # Camera zoom
+ZOOM = 2.5  # Camera zoom
+# ZOOM = 5.7  # Camera zoom
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
