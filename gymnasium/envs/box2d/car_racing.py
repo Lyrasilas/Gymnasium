@@ -31,13 +31,17 @@ except ImportError as e:
     raise DependencyNotInstalled(
         'pygame is not installed, run `pip install "gymnasium[box2d]"`'
     ) from e
-
+# Standard state dimensions
 # STATE_W = 96
 # STATE_H = 96
+
+# Increased state dimensions for better visuals and more detailed observations
 STATE_W = 160  # less than Atari 160x192
 STATE_H = 192
-# STATE_W = 512
-# STATE_H = 512
+
+# Increased video dimensions for map view
+# STATE_W = 512 
+# STATE_H = 512 
 VIDEO_W = 600
 VIDEO_H = 400
 WINDOW_W = 1024
@@ -47,12 +51,12 @@ SCALE = 6.0  # Track scale
 TRACK_RAD = 900 / SCALE  # Track is heavily morphed circle with this radius
 PLAYFIELD = 2000 / SCALE  # Game over boundary
 FPS = 30  # Frames per second
-ZOOM = 2.5  # Camera zoom
-# ZOOM = 5.7  # Camera zoom
+ZOOM = 2.5  # Camera zoom for less zoom view
+# ZOOM = 5.7  # Camera zoom for default view
 ZOOM_FOLLOW = True  # Set to False for fixed view (don't use zoom)
 
 
-TRACK_DETAIL_STEP = 10 / SCALE # Try to generate a track with high detail for more values, but render a less detailed track for better visuals
+TRACK_DETAIL_STEP = 10 / SCALE 
 TRACK_TURN_RATE = 0.15
 TRACK_WIDTH = 40 / SCALE
 BORDER = 8 / SCALE
@@ -348,17 +352,14 @@ class CarRacing(gym.Env, EzPickle):
                 else:
                     B_TRACK_RAD = TRACK_RAD
                 # Checkpoints generation for circle track
-                # Randomize direction: +1 for left-handed, -1 for right-handed 
-                # TODO: implement direction change correctly.
-                direction = 1
                 for c in range(CHECKPOINTS):
-                    alpha = direction * 2 * math.pi * c / CHECKPOINTS
+                    alpha = 1 * 2 * math.pi * c / CHECKPOINTS
                     
                     if c == 0:
                         alpha = 0
                     if c == CHECKPOINTS - 1:
-                        alpha = direction * 2 * math.pi * c / CHECKPOINTS
-                        self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
+                        alpha = 1 * 2 * math.pi * c / CHECKPOINTS
+                        self.start_alpha = 1 * 2 * math.pi * (-0.5) / CHECKPOINTS
 
                     checkpoints.append((alpha, B_TRACK_RAD * math.cos(alpha), B_TRACK_RAD * math.sin(alpha)))
             case "circle_small":
@@ -367,17 +368,14 @@ class CarRacing(gym.Env, EzPickle):
                 else:
                     S_TRACK_RAD = 250 / SCALE
                 # Checkpoints generation for circle track
-                # Randomize direction: +1 for left-handed, -1 for right-handed 
-                # TODO: implement direction change correctly.
-                direction = 1
                 for c in range(CHECKPOINTS):
-                    alpha = direction * 2 * math.pi * c / CHECKPOINTS
+                    alpha = 1 * 2 * math.pi * c / CHECKPOINTS
                     
                     if c == 0:
                         alpha = 0
                     if c == CHECKPOINTS - 1:
-                        alpha = direction * 2 * math.pi * c / CHECKPOINTS
-                        self.start_alpha = direction * 2 * math.pi * (-0.5) / CHECKPOINTS
+                        alpha = 1 * 2 * math.pi * c / CHECKPOINTS
+                        self.start_alpha = 1 * 2 * math.pi * (-0.5) / CHECKPOINTS
 
                     checkpoints.append((alpha, S_TRACK_RAD * math.cos(alpha), S_TRACK_RAD * math.sin(alpha)))  
             case _:
@@ -398,11 +396,7 @@ class CarRacing(gym.Env, EzPickle):
                     checkpoints.append((alpha, rad * math.cos(alpha), rad * math.sin(alpha)))
             
         self.road = []
-        # print("DEBUG: Checkpoints created:", checkpoints)
-        # time.sleep(2)
-        # Go from one checkpoint to another to create track
-        
-        # TODO: use to calculate track statistics, such as length, centerline, curvature, "walls", racing line, etc.
+
         x, y, beta = 1.5 * TRACK_RAD, 0, 0
         dest_i = 0
         laps = 0
@@ -450,7 +444,6 @@ class CarRacing(gym.Env, EzPickle):
                 beta += 2 * math.pi
             prev_beta = beta
             proj *= SCALE
-            # print(f"DEBUG: Got to use  track_turn_rate")
             if proj > 0.3:
                 beta -= min(TRACK_TURN_RATE, abs(0.001 * proj))
             if proj < -0.3:
@@ -499,7 +492,6 @@ class CarRacing(gym.Env, EzPickle):
         match self.track_style:
             case _:
                 if well_glued_together > TRACK_DETAIL_STEP:
-                    # print("DEBUG: Track generation rejected, not closed enough:", well_glued_together)
                     return False
 
         # Red-white border on hard turns
@@ -568,6 +560,7 @@ class CarRacing(gym.Env, EzPickle):
                     x2 + side * (TRACK_WIDTH + BORDER) * math.cos(beta2),
                     y2 + side * (TRACK_WIDTH + BORDER) * math.sin(beta2),
                 )
+                # to remove kerbs on the track, comment out the following lines
                 self.road_poly.append(
                     (
                         [b1_l, b1_r, b2_r, b2_l],
@@ -630,6 +623,7 @@ class CarRacing(gym.Env, EzPickle):
         self.car = Car(self.world, *self.track[n][1:4])
         self.last_track_idx = n
 
+        # For fixed start position at the beginning of the track, comment out the above two lines and uncomment the following lines
         # self.car = Car(self.world, *self.track[0][1:4])
         # self.last_track_idx = 0
         self._compute_track_bounds()
@@ -664,18 +658,8 @@ class CarRacing(gym.Env, EzPickle):
                 self.car.gas(0.2 * (action == 3))
                 self.car.brake(0.8 * (action == 4))
 
-        # PHYSICS_TIMESTEP = 1.0 / 60.0
-
-        # steps = int((1.0 / FPS) / PHYSICS_TIMESTEP)
-        # for _ in range(steps):
-        #     self.car.step(PHYSICS_TIMESTEP)
-        #     self.world.Step(PHYSICS_TIMESTEP, 6 * 30, 2 * 30)
-        #     self.state = self.render()
-        #     self.state = self._render("state_pixels")
-
         
         self.car.step(1.0 / FPS)
-        # print(self.track)
         self.world.Step(1.0 / FPS, 6 * 30, 2 * 30)
         self.t += 1.0 / FPS
 
@@ -695,13 +679,11 @@ class CarRacing(gym.Env, EzPickle):
             # self.reward -=  10 * self.car.fuel_spent / ENGINE_POWER
             self.car.fuel_spent = 0.0
             step_reward = self.reward - self.prev_reward
-            # print(f"Step reward from previous: {step_reward:.3f}")
             self.prev_reward = self.reward
             # Check if car is within track limits
             x, y = self.car.hull.position
             inside_middle_track = False
             closest_idx = self.last_track_idx
-            # print(f"Last track idx: {self.last_track_idx}")
             min_dist = float('inf')
             window = 10  # Number of points to check before and after last index
 
@@ -731,7 +713,6 @@ class CarRacing(gym.Env, EzPickle):
             vec_to_center = np.array([x - self.track[nearest_idx][-2], y - self.track[nearest_idx][-1]])
             car_direction = np.array([np.cos(self.car.hull.angle), np.sin(self.car.hull.angle)])
             lateral_dir = np.cross(car_direction, vec_to_center)
-            # print(lateral_dir)
             if lateral_dir > 0 and action[0] > 0 :
                 self.reward += 1  # Reward for steering towards track when on the left)
             if lateral_dir < 0 and action[0] < 0 :
@@ -743,8 +724,6 @@ class CarRacing(gym.Env, EzPickle):
                     if self.prev_dist_to_next_track is not None:
                         delta = dist_to_nearest - self.prev_dist_to_next_track
                         sign = np.sign(-delta)  # positive if getting closer, negative if getting farther
-                        # Reward is larger when farther from track, smaller when close
-                        # shaping_reward = sign * dist_to_nearest * 0.5  # scale as needed
                         shaping_reward = sign * 1
                         self.reward += shaping_reward
                         
@@ -756,8 +735,6 @@ class CarRacing(gym.Env, EzPickle):
             if not inside_middle_track:
                 self.last_track_idx = closest_idx  # Update to nearest for next step
                 self.reward += -1
-                # step_reward += -0.5
-                # print("Off track penalty applied.")
             if self.tile_visited_count == len(self.track) or self.new_lap:
                 # Termination due to finishing lap
                 terminated = True
@@ -837,8 +814,8 @@ class CarRacing(gym.Env, EzPickle):
                 scroll_y = -(center[1]) * zoom
                 angle = 0
             case "car":
+                # to reenable zoom animation, uncomment the following line and comment out the line after
                 # zoom = 0.1 * SCALE * max(1 - self.t, 0) + ZOOM * SCALE * min(self.t, 1)
-                # zoom = 4
                 zoom = ZOOM * SCALE
                 scroll_x = -(self.car.hull.position[0]) * zoom
                 scroll_y = -(self.car.hull.position[1]) * zoom
@@ -950,7 +927,6 @@ class CarRacing(gym.Env, EzPickle):
             np.square(self.car.hull.linearVelocity[0])
             + np.square(self.car.hull.linearVelocity[1])
         )
-        # print(f"True speed: {true_speed:.3f}")
         # simple wrapper to render if the indicator value is above a threshold
         def render_if_min(value, points, color):
             if abs(value) > 1e-4:
@@ -1008,7 +984,6 @@ class CarRacing(gym.Env, EzPickle):
         ):
             # convert to integer pixel coordinates to avoid subpixel blending
             int_poly = [(int(round(x)), int(round(y))) for x, y in poly]
-            # gfxdraw.aapolygon(self.surf, int_poly, color)
             gfxdraw.filled_polygon(self.surf, int_poly, color)
 
     def _create_image_array(self, screen, size):

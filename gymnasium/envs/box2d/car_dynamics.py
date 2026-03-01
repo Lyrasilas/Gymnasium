@@ -216,6 +216,8 @@ class Car:
                 w.omega += dir * val
             w.phase += w.omega * dt
 
+            # limits speed to around 50. Max speed of 60 is reached at around 116.6.
+            # Remove limit for data collection.
             if w.omega > 100.0:
                 w.omega = 100.0
             
@@ -227,8 +229,6 @@ class Car:
             # But dt is finite, that will lead to oscillations if difference is already near zero.
 
             # Random coefficient to cut oscillations in few steps (have no effect on friction_limit)
-            # f_force *= 205000 * SIZE * SIZE
-            # p_force *= 205000 * SIZE * SIZE
             f_force *= 205000 * SIZE * SIZE * 1/2
             p_force *= 205000 * SIZE * SIZE * 1/2
             force = np.sqrt(np.square(f_force) + np.square(p_force))
